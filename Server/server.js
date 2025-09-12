@@ -19,18 +19,33 @@ const port = process.env.PORT || 4000;
 await connectDB()
 await connectCloudinary()
 
-const allowedOrigins = ['http://localhost:5173']
+const allowedOrigins = [
+  "http://localhost:5173",
+  "https://green-cart-frontend.vercel.app", // your deployed frontend URL
+];
+app.use(
+  cors({
+    origin: (origin, cb) => {
+      if (!origin || allowedOrigins.includes(origin)) cb(null, true);
+      else cb(new Error("Not allowed by CORS"));
+    },
+    credentials: true,
+  })
+);
+
+/* 
+const allowedOrigins = ['http://localhost:5173'] */
 app.post("/stripe", express.raw({ type: "application/json" }), stripeWebhooks);
 
 
 app.use(express.json())
 app.use(cookieParser())
-app.use(cors(
+/* app.use(cors(
     {
         origin: allowedOrigins,
         credentials: true
     })
-)
+) */
 
 
 
