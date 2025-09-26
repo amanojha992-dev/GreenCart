@@ -108,7 +108,6 @@ export const placeOrderStripe = async (req, res) => {
 // Stripe Webhooks to verify payment actions : /stripe
 
 export const stripeWebhooks = async (req, res) => {
-  // Stripe Gateway Initialise
   const stripeInstance = new stripe(process.env.STRIPE_SECRET_KEY);
 
   const sig = req.headers["stripe-signature"];
@@ -121,50 +120,35 @@ export const stripeWebhooks = async (req, res) => {
       process.env.STRIPE_WEBHOOKS_SECRET
     );
   } catch (error) {
-    res.status(400).send(`Webhook Error: ${error.message}`);
+    return res.status(400).send(`Webhook Error: ${error.message}`);
   }
 
-  // Handle the event
   switch (event.type) {
-    case "payment_intent.succeeded": {
-      const paymentIntent = event.data.object;
-      const paymentIntentId = paymentIntent.id;
+    case "checkout.session.completed": {
+      const session = event.data.object;
+      const { orderId, userId } = session.metadata;
 
-      // Getting Session Metadata
-      const session = await stripeInstance.checkout.sessions.list({
-        payment_intent: paymentIntentId,
-      });
-
-      const { orderId, userId } = session.data[0].metadata;
-
-      // Mark Payment as Paid
       await Order.findByIdAndUpdate(orderId, { isPaid: true });
-
-      // Clear Cart Data
       await User.findByIdAndUpdate(userId, { cartItems: {} });
+
       break;
     }
 
-    case "payment_intent.payment_failed": {
-      const paymentIntent = event.data.object;
-      const paymentIntentId = paymentIntent.id;
+    case "checkout.session.async_payment_failed": {
+      const session = event.data.object;
+      const { orderId } = session.metadata;
 
-      // Getting Session Metadata
-      const session = await stripeInstance.checkout.sessions.list({
-        payment_intent: paymentIntentId,
-      });
-
-      const { orderId } = session.data[0].metadata;
       await Order.findByIdAndDelete(orderId);
       break;
     }
-    default: {
-      console.error(`Unhandled event type ${event.type}`);
-      break;
-    }
+
+    default:
+      console.log(`Unhandled event type ${event.type}`);
   }
+
   res.json({ received: true });
 };
+
 
 
 
