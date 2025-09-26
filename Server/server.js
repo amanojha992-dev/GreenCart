@@ -21,7 +21,7 @@ await connectCloudinary()
 
 const allowedOrigins = [
   "http://localhost:5173",
-  "https://green-cart-frontend.vercel.app", // your deployed frontend URL
+  "https://green-cart-ashen.vercel.app", // your deployed frontend URL
 ];
 app.use(
   cors({
